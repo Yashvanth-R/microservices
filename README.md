@@ -195,23 +195,6 @@ Access the RabbitMQ Management Dashboard:
 
 Monitor queues, messages, and connections in real-time.
 
-## 📝 Troubleshooting
-
-### RabbitMQ Connection Refused
-- Ensure RabbitMQ is running and accessible
-- Check if port 5672 is not blocked
-- Verify connection string: `amqp://rabbitmq` (Docker) or `amqp://localhost` (Local)
-
-### MongoDB Connection Error
-- Ensure MongoDB is running
-- Verify connection string: `mongodb://mongo:27017/...` (Docker) or `mongodb://localhost:27017/...` (Local)
-- Check if port 27017 is not blocked
-
-### Services Not Starting
-- Check Docker Compose logs: `docker-compose logs`
-- Verify all ports are available
-- Ensure all dependencies are installed: `npm install` in each service directory
-
 ## 🐳 Docker Commands
 
 **Build images:**
