@@ -14,6 +14,53 @@ services:
       - "5672:5672" #Expose of ports for RabbitMQ messaging(Basically AMQP port)
       - "15672:15672" #Expose of ports for RabbitMQ management UI
 
+  # Additional infrastructure services from TaskFlow
+  redis:
+    image: redis:7
+    container_name: tf_redis
+    ports:
+      - "6379:6379"
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+    environment:
+      - REDIS_HOSTS=local:tf_redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+
+  minio:
+    image: minio/minio
+    container_name: tf_minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"  # API port
+      - "9001:9001"  # WebUI port
+    volumes:
+      - minio_data:/data
+
+  elasticsearch:
+    image: elasticsearch:8.11.0
+    container_name: tf_es
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - "cluster.routing.allocation.disk.threshold_enabled=false"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+
   user-service:
     build: ./user-service
     container_name: user-service
@@ -40,5 +87,61 @@ services:
       - mongo
       - rabbitmq
 
+  # New TaskFlow services
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongo
+      - redis
+
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    ports:
+      - "3003:3003"
+    depends_on:
+      - mongo
+      - redis
+
+  scheduler-service:
+    build: ./scheduler-service
+    container_name: scheduler-service
+    ports:
+      - "3004:3004"
+    depends_on:
+      - redis
+
+  file-service:
+    build: ./file-service
+    container_name: file-service
+    ports:
+      - "3005:3005"
+    depends_on:
+      - minio
+
+  search-service:
+    build: ./search-service
+    container_name: search-service
+    ports:
+      - "3006:3006"
+    depends_on:
+      - elasticsearch
+
+  frontend-service:
+    build: ./frontend-service
+    container_name: frontend-service
+    ports:
+      - "3008:3000"
+    environment:
+      - NEXT_PUBLIC_API_GATEWAY_URL=http://localhost:8080
+    depends_on:
+      - api-gateway
+    command: npm start
+
 volumes:
   mongo-data:
+  minio_data:
+  es_data:
